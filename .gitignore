@@ -30,6 +30,9 @@ env/
 uploads/*
 !uploads/.gitkeep
 
+# Documents directory (contains potentially sensitive data)
+documents/
+
 # IDE specific files
 .idea/
 .vscode/

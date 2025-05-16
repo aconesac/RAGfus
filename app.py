@@ -243,6 +243,37 @@ def preview_document(document_id):
         logger.error(f"Error getting document preview: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/documents/<int:document_id>/download', methods=['GET'])
+def download_document(document_id):
+    """Download the original document file"""
+    try:
+        conn = sqlite3.connect(db.db_path)
+        cursor = conn.cursor()
+        
+        # Get document file path
+        cursor.execute("SELECT file_path FROM documents WHERE id = ?", (document_id,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return jsonify({"error": f"Document {document_id} not found"}), 404
+            
+        file_path = result[0]
+        
+        # Check if the file exists
+        if not os.path.exists(file_path):
+            return jsonify({"error": f"File not found on server: {file_path}"}), 404
+        
+        # Get the directory and filename
+        directory = os.path.dirname(file_path)
+        filename = os.path.basename(file_path)
+        
+        return send_from_directory(directory, filename, as_attachment=True)
+    
+    except Exception as e:
+        logger.error(f"Error downloading document: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 # Run the Flask app
 if __name__ == '__main__':
     # Make sure the uploads directory exists
