@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGfus - Document Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container { max-width: 960px; }
+        .card { margin-bottom: 20px; }
+        .search-results { max-height: 500px; overflow-y: auto; }
+        .card-body { position: relative; }
+        .similarity-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        #processingStatus {
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">RAGfus Document Manager</h1>
+        
+        <div class="row">
+            <!-- Upload Section -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Upload Document</div>
+                    <div class="card-body">
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="fileUpload" class="form-label">Select file to upload</label>
+                                <input type="file" class="form-control" id="fileUpload" name="file">
+                                <div class="form-text">Supported types: txt, pdf, docx, csv, py</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Process Directory Section -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Process Directory</div>
+                    <div class="card-body">
+                        <form id="directoryForm">
+                            <div class="mb-3">
+                                <label for="directoryPath" class="form-label">Directory Path</label>
+                                <input type="text" class="form-control" id="directoryPath" placeholder="/path/to/documents">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Process Directory</button>
+                        </form>
+                        <div id="processingStatus" class="alert alert-info">
+                            Processing directory, please wait...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Search Section -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">Search Documents</div>
+                    <div class="card-body">
+                        <form id="searchForm">
+                            <div class="mb-3">
+                                <label for="searchQuery" class="form-label">Search Query</label>
+                                <input type="text" class="form-control" id="searchQuery" placeholder="Enter your search query">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="topK" class="form-label">Number of Results</label>
+                                        <input type="number" class="form-control" id="topK" value="5" min="1" max="20">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="minSimilarity" class="form-label">Min. Similarity (0-1)</label>
+                                        <input type="number" class="form-control" id="minSimilarity" value="0" min="0" max="1" step="0.1">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Filter by File Type</label>
+                                        <div class="d-flex flex-wrap">
+                                            <div class="form-check me-3">
+                                                <input class="form-check-input file-extension" type="checkbox" value=".txt" id="txtCheck">
+                                                <label class="form-check-label" for="txtCheck">TXT</label>
+                                            </div>
+                                            <div class="form-check me-3">
+                                                <input class="form-check-input file-extension" type="checkbox" value=".pdf" id="pdfCheck">
+                                                <label class="form-check-label" for="pdfCheck">PDF</label>
+                                            </div>
+                                            <div class="form-check me-3">
+                                                <input class="form-check-input file-extension" type="checkbox" value=".docx" id="docxCheck">
+                                                <label class="form-check-label" for="docxCheck">DOCX</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input file-extension" type="checkbox" value=".py" id="pyCheck">
+                                                <label class="form-check-label" for="pyCheck">PY</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">Search Results</div>
+                    <div class="card-body search-results" id="searchResults">
+                        <p class="text-center text-muted">No search results yet. Try searching for something!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents List -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Uploaded Documents
+                        <button id="refreshDocuments" class="btn btn-sm btn-outline-primary float-end">Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>File Path</th>
+                                    <th>Created At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documentsList">
+                                <!-- Documents will be listed here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Preview Modal -->
+        <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="documentPreviewModalLabel">Document Preview</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6 id="previewFilePath" class="text-muted mb-3"></h6>
+                        <div id="documentPreviewContent" class="border p-3 bg-light" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; font-family: monospace;"></div>
+                        <div id="truncationNotice" class="mt-2 text-muted" style="display: none;">
+                            <small>This preview has been truncated due to the large document size.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to show alerts
+        function showAlert(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('.container').prepend(alertDiv);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 500);
+            }, 5000);
+        }
+
+        // Upload file
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileUpload');
+            
+            if (!fileInput.files[0]) {
+                showAlert('Please select a file to upload', 'warning');
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert('File uploaded and processed successfully!');
+                    loadDocuments(); // Refresh the document list
+                } else {
+                    showAlert(`Error: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'danger');
+            }
+        });
+
+        // Process directory
+        document.getElementById('directoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const directoryPath = document.getElementById('directoryPath').value;
+            
+            if (!directoryPath) {
+                showAlert('Please enter a directory path', 'warning');
+                return;
+            }
+            
+            document.getElementById('processingStatus').style.display = 'block';
+            
+            try {
+                const response = await fetch('/process_directory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ directory_path: directoryPath })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Directory processing initiated. Check server logs for progress.');
+                    setTimeout(loadDocuments, 2000); // Refresh the document list after a delay
+                } else {
+                    showAlert(`Error: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'danger');
+            } finally {
+                document.getElementById('processingStatus').style.display = 'none';
+            }
+        });
+
+        // Search documents
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const query = document.getElementById('searchQuery').value;
+            const topK = document.getElementById('topK').value;
+            const minSimilarity = document.getElementById('minSimilarity').value;
+            
+            if (!query) {
+                showAlert('Please enter a search query', 'warning');
+                return;
+            }
+            
+            // Gather selected file extensions
+            const selectedExtensions = Array.from(document.querySelectorAll('.file-extension:checked'))
+                                            .map(checkbox => checkbox.value);
+            
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        query: query,
+                        top_k: parseInt(topK),
+                        min_similarity: parseFloat(minSimilarity),
+                        file_extensions: selectedExtensions
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displaySearchResults(result.results);
+                } else {
+                    showAlert(`Error: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'danger');
+            }
+        });
+
+        // Display search results
+        function displaySearchResults(results) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (!results || results.length === 0) {
+                resultsContainer.innerHTML = '<p class="text-center text-muted">No results found for your query.</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            results.forEach(result => {
+                const similarityPercent = (result.similarity * 100).toFixed(1);
+                const badgeColor = similarityPercent > 70 ? 'bg-success' : 
+                                  similarityPercent > 40 ? 'bg-warning' : 'bg-secondary';
+                
+                html += `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <span class="badge ${badgeColor} similarity-badge">${similarityPercent}% match</span>
+                        <h5 class="card-title">${result.file_path.split('/').pop()}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">${result.file_path}</h6>
+                        <p class="card-text">${result.document_text || 'No text preview available'}</p>
+                    </div>
+                </div>`;
+            });
+            
+            resultsContainer.innerHTML = html;
+        }
+
+        // Load list of documents
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/documents');
+                const documents = await response.json();
+                
+                const documentsList = document.getElementById('documentsList');
+                
+                if (!documents || documents.length === 0) {
+                    documentsList.innerHTML = '<tr><td colspan="4" class="text-center">No documents found in the database.</td></tr>';
+                    return;
+                }
+                
+                let html = '';
+                documents.forEach(doc => {
+                    html += `
+                    <tr>
+                        <td>${doc.id}</td>
+                        <td>${doc.file_path}</td>
+                        <td>${doc.created_at}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="previewDocument(${doc.id})">Preview</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteDocument(${doc.id}, this)">Delete</button>
+                        </td>
+                    </tr>`;
+                });
+                
+                documentsList.innerHTML = html;
+            } catch (error) {
+                showAlert(`Error loading documents: ${error.message}`, 'danger');
+            }
+        }
+
+        // Delete document
+        async function deleteDocument(docId, btn) {
+            if (!confirm('Are you sure you want to delete this document?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/documents/${docId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert('Document deleted successfully!');
+                    loadDocuments(); // Refresh the document list
+                } else {
+                    showAlert(`Error: ${result.error}`, 'danger');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'danger');
+            }
+        }
+
+        // Preview document
+        async function previewDocument(docId) {
+            try {
+                const response = await fetch(`/documents/${docId}/preview`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('previewFilePath').textContent = data.file_path;
+                    document.getElementById('documentPreviewContent').textContent = data.preview;
+                    
+                    // Show truncation notice if needed
+                    const truncationNotice = document.getElementById('truncationNotice');
+                    truncationNotice.style.display = data.truncated ? 'block' : 'none';
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
+                    modal.show();
+                } else {
+                    showAlert(`Error: ${data.error}`, 'danger');
+                }
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'danger');
+            }
+        }
+
+        // Refresh document list
+        document.getElementById('refreshDocuments').addEventListener('click', loadDocuments);
+
+        // Initial load of documents
+        document.addEventListener('DOMContentLoaded', loadDocuments);
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

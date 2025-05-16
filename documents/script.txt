@@ -1,0 +1,63 @@
+slide 1:
+Hi my name is agustin conesa and today i will be presenting my bacheors thesis entitled: FOCUSED ULTRASOUND THERAPY PLANNING
+THROUGH GAN-BASED META-SIMULATIONS. This work was supervised by prof olver diaz and richard osuala.
+
+Slide 2:
+say that this work goes in the context of neurostimulation
+neurostimulation is using different types of energy to stimulate or modulate CNS activity, it can help in many diseases such as...
+comparison of TMS, DCS, pharma and DBS
+FUS is an emergy technology more precise, and non invasive
+
+slide 3: 
+all of these therapies and in particular FUS, involve a planning step with which several therapy parameters such as positioning, orientation, frequency or intensity are tested. This allows for patient specific approaches and doing more efficient therapies. These planning is usually done troought a software. this softwares allow for the visual positioning of the devices and the selction on stimualtion parameters. The visualization of the energy delivered to the tissues is also possible.
+
+slide 4:
+the whole planning pipeline is represented in this diagram. firsrt patient images and taken and registered to devices. Then a model is created from which specific physical medium properties can be derived. On the patient model we also generate tissue segmentations and select the stimulation point. The transducers are them optimally placed and togeteher with the pysical medium properties are embedded into a computational numerical solver which is capable of generating the spatio-temporal pressure distribution.
+
+The problem is that the computational numerical solvers traditionally used are time consuming and require large computational resources. This is a great drawback when trying to introduce this technology in the clinical pipeline, as to plan therapies for a large number of patients, which requires several simulations, is unfeasible under this paradigm.
+
+slide 5:
+Thus, in this work we propose to use Generative Adversial Networks (GANs) in this step of the pipeline in order to achieve a better efficiency and reduce the computation time reqruired. GANs are a type of Generative AI based on neural networks  capable of learning to generate images similar to those in a training set provided. The vanilla GAN is composed of two Neural Models, a generator and a discriminator. These models compete in a zero sum game where the generator tries to generate images that resample a set of provided training data in a way that the discriminator is nos capable of knowing whether they are generated or real images. We use the predictions of the discriminator to generate a loss that will be used to train both the discriminator so it improves at the clasificaion task and the generator so it improves and the generation task. The theoretial convergence occurs when the discriminator has a 50% classification accuracy, showing that it is not capable of distinguishing real and fake iamges.
+
+slide 6:
+coment on the objectives
+
+slide 7:
+For the first objective of dataset generation, a matlab implementation was developed to automatically generate samples of simulation from a provided set of CT images. The automation was crucial as the generation of a manual dataset would have taken too long to fit in the scope of the proyect. This implementation ensured that there was variety in transducer positioning and subject anatomies. The implementation follwd the diagram showd, it loaded the CT images, segmented the skull tissue, generate a set of 20 point evenly distributed along the anatomy of the skull. From each point a ROI was selected and the position of the transducer and the stimulation focus was calculated. The scenario was saved and inputed in to a numerical solver which generated the intensity maps for that given scenario. Both the input and intensity maps will be used as training pairs.
+
+slide 8:
+Here are some examples from the dataset. The CT image and transducer are used as inputs to the generator concatenating then in a 2 channel image, the intenity maps are used in a paired way as training dataset that the generator has to lear to predict. In the CTs we can see.. great anatomical variations, different tissue properties. The intensity maps are caracterized by  say the amount odf data...
+
+slide 9:
+regarding the approach selection, we decided to use pix2pix frameork. This is an implementation of GAN tailored to do image-to-image translation. The idea is to take an image in a .. and translating it to a new domain. It uses a Unet architecture in the Generator which is a type of encoder-decoder architecture capable of encoding the semantic information of the image and decoding it to generate the new domain. skip conection are used also to preserve the spatial features of the image. The disccriminator in based on CNN architecture that preforms a patch based clasification. This means that the iamge is dicided in to patches by the CN, and the fake or real classification is perform on each pathc. This is particulary suitable for our apporach as most of the image..
+As explained discriminator prediction are used... but also the generator images are compaire to its GT pair to generate an L1 loss which help to mantain high frequency features avoiding image blurring.
+
+slide 10:
+here are shown the specific architectures of the generator and discriminator and their corresponding losses.
+
+slide 11: 
+here are shown the metrics used.
+MSE isa pixel wise difference between the generated and true image. It give a measure of the percentace of error between the images.
+SSIM measures the structural overall difference between the images. It does so by using the mean of the images, the variance and the covariance of the images.
+LPIPS is a more advances perceptual metric. It uses  oretrained convolutional neural networks to compress the image information and it calculated the difference between each one of these compresion levels. By doing so it does not limit itself to spatial information  but also introduces a measure of difference in semantic information. 
+Finally, phase correlation is used as an outlier detection metric. These metric in capable of detecting large shifts in orientation of images, which in this case is crucial to ensure the the generated images are in accordance to the anatomy provided. 
+
+slide 12: 
+ablation study
+
+slide 13:
+here ae shown the results of the baseline approach, which used the pix2pix implemenation with no variations. These are the baseline metrics. we observe a low mean MSE error, how eer the standar deviation is very large. We cn observe an initial alignment between the GT and the image output. However, the image appears to be blurred, with high noise abd sine artifacts. So we performed an ablation study to learn which parameters woul involve improvement.
+
+slide 14:
+as the variations in MSE between approaches where not significant, we decided to use SSIM and LPIPS as main comparing metrics, In this plot, point down to the right have a worst perfonce, and on the top left they have better perfonce.  we can observe that the baseline64B approach has the worst results. first deacresing th bsize improves. wE ALSO OBSERVE THAT FOR THE BASELINE, INCRESING THE NUMBER OF EPOCH DID NOT IMPROVE THE  reuslts. Possible overfitting ocuring. when using data augmentation, we were able to increase the epochs and obatin better results. An improvement was also observed when increasing the datasize, however data aumentation was still necessary. Further more during training we observed a rapid improvement of the discriminator, which was to quick for the generator to follow. We thus decided to decrease the discriminators learning rate, which improved the results. The beast model used a combination of all of mentioned. Some variation where tested and different ooptimizers, or not using a patched approach, no improvement was observed. WGAN and BiggerGenerator obtained the best metrics in LPIP and SSSIM alone. so we decided to further compare them.
+
+slide 15:
+BigDataAug was the one with best combination of metrics. How ever WGAN had an increased SSIM and BigGen an increased LPIPS.
+it was observe that in some cases, the improvement of LPIPS yileded a decrese in SSIM.
+MSE was not a reliable metric to compare them, all in the same range.
+
+
+slide 16: 
+
+
+

@@ -1,0 +1,19 @@
+very interesting your midgan application
+
+is the temporal encoding approach right? what other could be used? If the length of the simulation changes, will it affect? Also thought about using a temporal discriminator (Dt)
+
+datsize is very big and I do not have much experience with these sizes, I am stuck at dataloagind
+
+I had thought about using Wasserstein distance on this approach, but i am stuck at dataloading
+
+do you think it would be interesting to use transformers
+
+how to include physical units
+
+mapa de intensidad primero, y en 2D
+
+meter los transductores como 2o channel
+
+frequencia a usar, discretizacion de los valores
+
+
